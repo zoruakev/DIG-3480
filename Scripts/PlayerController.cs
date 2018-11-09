@@ -1,62 +1,63 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+
+[System.Serializable]
+public class Boundary
+{
+    public float xMin, xMax, zMin, zMax;
+}
 
 public class PlayerController : MonoBehaviour {
 
-    public float speed;
-    public Text countText;
-    public Text winText;
-
     private Rigidbody rb;
-    private int count;
+    public float speed;
+    public float tilt;
+    public Boundary boundary;
+    public GameObject lazer;
+    public Transform lazerSpawn;
+    public float fireRate;
+    private float nextFire;
+    public AudioClip blaster;
+    private AudioSource source;
 
-    private void Start()
+    // Use this for initialization
+    void Start ()
     {
         rb = GetComponent<Rigidbody>();
-        count = 0;
-        countText.text = "Count: " + count.ToString();
-        winText.text = "";
+	}
+
+    void Awake()
+    {
+        source = GetComponent<AudioSource>();
     }
 
+    void Update()
+    {
+        if (Input.GetButton("Fire1") && Time.time > nextFire)
+        {
+            nextFire = Time.time + fireRate;
+            Instantiate(lazer, lazerSpawn.position, lazerSpawn.rotation);
+            source.PlayOneShot(blaster);
+        }
+
+        if (Input.GetKey(KeyCode.Escape))
+        {
+            Application.Quit();
+        }
+    }
+
+    // Update is called once per frame
     void FixedUpdate ()
     {
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
         Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
+        rb.velocity = movement * speed;
 
-        rb.AddForce(movement * speed);
+        rb.position = new Vector3(Mathf.Clamp(rb.position.x, boundary.xMin, boundary.xMax), 0, Mathf.Clamp(rb.position.z, boundary.zMin, boundary.zMax));
+
+        rb.rotation = Quaternion.Euler (0, 0, rb.velocity.x * -tilt);
     }
-
-    private void Update()
-    {
-        if (Input.GetKey("escape"))
-        {
-            Application.Quit();
-        }
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.CompareTag("Pick up"))
-        {
-            other.gameObject.SetActive(false);
-            count = count + 1;
-            SetCountText();
-        }
-    }
-
-    void SetCountText()
-    {
-        countText.text = "Count: " + count.ToString();
-        if (count >= 12)
-        {
-            winText.text = "You Win!";
-        }
-    }
-
-
-
 }
